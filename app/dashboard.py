@@ -1,20 +1,20 @@
-from dash import Dash, html, dcc, callback, Output, Input, dash_table
-import geopandas
+import os
+from pathlib import Path
+import logging
+
+from dash import Dash, html, dcc, dash_table
 import plotly.graph_objects as go
 import flask
 import json
 import itertools
 import pandas as pd
-import plotly.express as px
 import plotly.figure_factory as ff
-from plotly.subplots import make_subplots
-import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 
 pd.options.plotting.backend = "plotly"
 
-# external_stylesheets = [
-#     "https://github.com/tudelft3d/3dbag-docs/blob/gh-pages/en/stylesheets/extra.css"]
+logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+log = logging.getLogger(__name__)
 
 # --- Server and App
 
@@ -22,15 +22,19 @@ server = flask.Flask(__name__)  # define flask app.server
 
 app = Dash(__name__,
            external_stylesheets=[dbc.themes.BOOTSTRAP],
-           server=server)  # call flask server
+           server=server,
+           url_base_pathname='/dashboard/')  # call flask server
 
 # --- Prep input
 
+data_dir = Path(os.environ.get("BAG3D_DATA_DIR", "data"))
+log.info(f"{data_dir=}")
+
 ## Lineage
-metadata_json = "data/metadata.json"
+metadata_json = data_dir / "metadata.json"
 with open(metadata_json, "r") as fo:
     metadata = json.load(fo)
-metadata.keys()
+log.info(f"Loaded {metadata_json}")
 
 df_software = pd.DataFrame.from_records(
     metadata["dataQualityInfo"]["lineage"]["software"])
@@ -50,17 +54,19 @@ count_reconstruction_input = int(df_steps.loc[df_steps[
                                      0])
 
 ## Compressed files
-validate_compressed_files_csv = "data/validate_compressed_files.csv"
+validate_compressed_files_csv = data_dir / "validate_compressed_files.csv"
 validated_compressed = pd.read_csv(validate_compressed_files_csv)
+log.info(f"Loaded {validate_compressed_files_csv}")
 
 ## Reconstruciton results
-reconstructed_features_csv = "data/reconstructed_features.csv"
-reconstructed_features = pd.read_csv(reconstructed_features_csv)
+reconstructed_features_csv = data_dir / "reconstructed_features.csv"
+reconstructed_features = pd.read_csv(reconstructed_features_csv, low_memory=False)
 count_not_reconstructed = reconstructed_features.loc[(
             (reconstructed_features.lod_12 == 0) & (
                 reconstructed_features.lod_13 == 0) & (
                         reconstructed_features.lod_13 == 0) & (
                         reconstructed_features.lod_0 == 0)), "identificatie"].nunique()
+log.info(f"Loaded {reconstructed_features_csv}")
 
 ## Output formats
 
@@ -170,42 +176,7 @@ def plot_validity_obj(validated_compressed):
 
 # --- Layout
 
-# app.layout = html.Div([
-#     html.H1(f"3DBAG version {metadata['identificationInfo']['citation']['edition']}"),
-#     html.H3("Software versions"),
-#     dash_table.DataTable(data=df_software.to_dict('records'),
-#                          page_size=len(df_software),
-#                          style_cell={'whiteSpace': 'pre-line', 'textAlign': 'left'},
-#                          columns=[
-#                              {"name": "name", "id": "name"},
-#                              {"name": "description", "id": "description"},
-#                              {"name": "repository", "id": "repository",
-#                               "presentation": "markdown"},
-#                              {"name": "version", "id": "version"}
-#                          ],
-#                          ),
-#     html.H3("Input processing"),
-#     dash_table.DataTable(data=df_steps.to_dict('records'),
-#                          page_size=len(df_steps),
-#                          style_cell={'textAlign': 'left'},
-#                          ),
-#     html.H3("Point clouds"),
-#     html.Div([
-#         html.Div(
-#             children=[
-#                 html.H5(children="Point cloud source"),
-#                 dcc.Graph(figure=plot_pc_version(reconstructed_features)),
-#             ], style={'padding': 10, 'flex': 1}
-#         ),
-#         html.Div(
-#             children=[
-#                 html.H5(children="Point cloud selection"),
-#                 dcc.Graph(figure=plot_pc_selection_reason(reconstructed_features)),
-#             ], style={'padding': 10, 'flex': 1}
-#         ),
-#     ], style={'display': 'flex', 'flexDirection': 'row'}),
-# ])
-
+log.info("Creating app layout")
 app.layout = dbc.Container([
     html.H1(f"3DBAG version {metadata['identificationInfo']['citation']['edition']}"),
     html.H2("Software versions"),
@@ -287,3 +258,5 @@ app.layout = dbc.Container([
         dbc.Col(dbc.Row([dcc.Graph(figure=plot_validity_obj(validated_compressed))])),
     ]),
 ], fluid=True)
+
+log.info("Running the dashboard")
