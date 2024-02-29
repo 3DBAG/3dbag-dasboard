@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bag3d-dashboard"
+version = "2024.1001"
+description = "Dashboard for the 3DBAG quality information"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Propietary" }
+authors = [
+    { name = "3DGI", email = "info@3dgi.nl" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+    "License :: OSI Approved :: Apache Software License"
+]
+dependencies = [
+    "pandas==2.1.1",
+    "scipy==1.11.4",
+    "matplotlib==3.8.1",
+    "psycopg==3.1.14",
+    "psycopg-pool==3.2.0",
+    "geopandas==0.14.3",
+    "folium==0.15.1",
+    "plotly==5.18.0",
+    "dash==2.15.0",
+    "dash-leaflet==1.0.15",
+    "dash-mantine-components==0.12.1",
+    "dash-bootstrap-components==1.5.0"
+]
+
+optional-dependencies = { dev = ["bumpver", "jupyter"] }
+
+[tool.bumpver]
+current_version = "2024.1001"
+version_pattern = "YYYY.BUILD"
+commit_message = "bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'version = "{version}"',
+]
