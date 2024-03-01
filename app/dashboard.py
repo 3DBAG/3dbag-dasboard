@@ -23,7 +23,8 @@ server = flask.Flask(__name__)  # define flask app.server
 app = Dash(__name__,
            external_stylesheets=[dbc.themes.BOOTSTRAP],
            server=server,
-           url_base_pathname='/dashboard/')  # call flask server
+           # url_base_pathname='/dashboard/'
+           )  # call flask server
 
 # --- Prep input
 
@@ -49,9 +50,7 @@ df_steps = pd.DataFrame.from_records(
     metadata["dataQualityInfo"]["lineage"]["processStep"]).rename(
     columns={"name": "step"})
 df_steps = df_steps[["step", "featureCount", "dataVersion", "dateTime", "runId"]]
-count_reconstruction_input = int(df_steps.loc[df_steps[
-                                                  "step"] == "input.reconstruction_input", "featureCount"].values[
-                                     0])
+count_reconstruction_input = int(df_steps.loc[df_steps["step"] == "input.reconstruction_input", "featureCount"].values[0])
 
 ## Compressed files
 validate_compressed_files_csv = data_dir / "validate_compressed_files.csv"
@@ -176,10 +175,75 @@ def plot_validity_obj(validated_compressed):
 
 # --- Layout
 
+card_pc_version = dbc.Card(
+    dbc.CardBody([
+        html.H4("Point cloud source"),
+        html.P(["Attribute: ", html.A("b3_pw_bron",
+               href="https://docs.3dbag.nl/en/schema/attributes/#b3_pw_bron")]),
+        dcc.Graph(figure=plot_pc_version(reconstructed_features))
+    ])
+)
+
+card_pc_selection = dbc.Card(
+    dbc.CardBody([
+        html.H4("Point cloud selection"),
+        html.P(["Reason for the selected point cloud source. Attribute: ", html.A("b3_pw_selectie_reden",
+               href="https://docs.3dbag.nl/en/schema/attributes/#b3_pw_selectie_reden")]),
+        dcc.Graph(figure=plot_pc_selection_reason(reconstructed_features))
+    ])
+)
+
+card_pc_nodata_fraction = dbc.Card(
+    dbc.CardBody([
+        html.H4("No-data fraction"),
+        html.P([
+            "Fraction of the footprint area that has no point data in the AHN point cloud. Only points classified as building or ground are considered. Attribute: ",
+            html.A("b3_nodata_fractie_*", href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_fractie_ahn3")
+        ]),
+        dcc.Graph(figure=plot_pc_nodata_fraction(reconstructed_features))
+    ])
+)
+
+card_pc_nodata_radius = dbc.Card(
+    dbc.CardBody([
+        html.H4("No-data radius"),
+        html.P([
+            "Radius of the largest circle inside the BAG polygon without any AHN points. Only points classified as building or ground are considered. Attribute: ",
+            html.A("b3_nodata_radius_*", href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_radius_ahn3")
+        ]),
+        dcc.Graph(figure=plot_pc_nodata_radius(reconstructed_features))
+    ])
+)
+
+card_pc_density = dbc.Card(
+    dbc.CardBody([
+        html.H4("Point density"),
+        html.P([
+            "Density of the AHN point cloud on BAG polygon. Only points classified as building or ground are considered. Attribute: ",
+            html.A("b3_puntdichtheid_*", href="https://docs.3dbag.nl/en/schema/attributes/#b3_puntdichtheid_ahn3")
+        ]),
+        dcc.Graph(figure=plot_pc_density(reconstructed_features))
+    ])
+)
+
+card_validity_cityjson = dbc.Card(
+    dbc.CardBody([
+        html.H4("CityJSON geometric errors"),
+        dcc.Graph(figure=plot_validity_cityjson(validated_compressed))
+    ])
+)
+
+card_validity_obj = dbc.Card(
+    dbc.CardBody([
+        html.H4("OBJ geometric errors"),
+        dcc.Graph(figure=plot_validity_obj(validated_compressed))
+    ])
+)
+
 log.info("Creating app layout")
 app.layout = dbc.Container([
-    html.H1(f"3DBAG version {metadata['identificationInfo']['citation']['edition']}"),
-    html.H2("Software versions"),
+    html.H3(f"3DBAG version {metadata['identificationInfo']['citation']['edition']}", className="title is-3"),
+    html.H3("Software versions", className="title is-3"),
     dbc.Row([
         dash_table.DataTable(data=df_software.to_dict('records'),
                              page_size=len(df_software),
@@ -190,73 +254,74 @@ app.layout = dbc.Container([
                                  {"name": "repository", "id": "repository",
                                   "presentation": "markdown"},
                                  {"name": "version", "id": "version"}
-                             ],
-                             ),
-    ], align="center"),
-    html.H2("Input processing"),
+                             ]),
+    ], align="center", className="table"),
+    html.H3("Input processing", className="title is-3"),
     dbc.Row([
         dash_table.DataTable(data=df_steps.to_dict('records'),
                              page_size=len(df_steps),
                              style_cell={'textAlign': 'left'},
                              ),
-    ], align="center"),
-    html.H3("Point clouds"),
-    dbc.Row([
-        dbc.Col(dbc.Row([html.H4("Point cloud version"),
-                         dcc.Graph(figure=plot_pc_version(reconstructed_features))])),
-        dbc.Col(dbc.Row([html.H4("Point cloud selection"), dcc.Graph(
-            figure=plot_pc_selection_reason(reconstructed_features))])),
+    ], align="center", className="table"),
+    html.H4("Point clouds", className="title is-4"),
+    html.Div([
+        dbc.Row([
+            dbc.Col(card_pc_version),
+            dbc.Col(card_pc_selection),
+        ]),
+        dbc.Row([
+            dbc.Col(card_pc_nodata_fraction),
+            dbc.Col(card_pc_nodata_radius),
+            dbc.Col(card_pc_density),
+        ], style={'display': 'flex', 'flexDirection': 'row'}),
     ]),
-    dbc.Row([
-        dbc.Col(dcc.Graph(figure=plot_pc_nodata_fraction(reconstructed_features))),
-        dbc.Col(dcc.Graph(figure=plot_pc_nodata_radius(reconstructed_features))),
-        dbc.Col(dcc.Graph(figure=plot_pc_density(reconstructed_features))),
-    ], style={'display': 'flex', 'flexDirection': 'row'}),
-    html.H2("Reconstruction"),
+    html.H3("Reconstruction", className="title is-3"),
     html.P(
         f"Reconstruction success: {round(count_not_reconstructed / count_reconstruction_input * 100, 1)}%"),
     html.P(
         f"Number failed: {count_not_reconstructed} (out of {count_reconstruction_input})"),
-    html.H2("Output formats"),
+    html.H3("Output formats", className="title is-3"),
     dbc.Row([
+        html.H4("CityJSON", className="title is-4"),
         dcc.Markdown(f"""
-        #### CityJSON
-        
         - Tile IDs with an invalid ZIP file: {', '.join(validated_compressed.loc[validated_compressed["cj_zip_ok"] == False, "tile_id"].sort_values(ascending=True))}
         - Tile IDs with an invalid CityJSON schema: {', '.join(validated_compressed.loc[validated_compressed["cj_schema_valid"] == False, "tile_id"].sort_values(ascending=True))}
         - Tile IDs that do not contain all LoDs (0, 1.2, 1.3, 2.2): {', '.join(validated_compressed.loc[validated_compressed["cj_lod"] != "['0', '1.2', '1.3', '2.2']", "tile_id"].sort_values(ascending=True))}
-        
-        #### OBJ
-        
+        """, className="content"),
+
+        html.H4("OBJ", className="title is-4"),
+        dcc.Markdown(f"""
         - Tile IDs with an invalid ZIP file: {', '.join(validated_compressed.loc[validated_compressed["obj_zip_ok"] == False, "tile_id"].sort_values(ascending=True))}
-        
-        #### GeoPackage
-        
+        """, className="content"),
+
+        html.H4("GeoPackage", className="title is-4"),
+        dcc.Markdown(f"""
         - Tile IDs with an invalid ZIP file: {', '.join(validated_compressed.loc[validated_compressed["gpkg_zip_ok"] == False, "tile_id"].sort_values(ascending=True))}
         - Tile IDs with invalid GeoPackage: {', '.join(validated_compressed.loc[validated_compressed["gpkg_ok"] == False, "tile_id"].sort_values(ascending=True))}
-        """)
+        """, className="content"),
     ]),
-    html.H3("Geometric errors"),
+    html.P("", className="content"),
+    html.H3("Geometric errors", className="title is-3"),
     dbc.Row([
         dash_table.DataTable(data=df_format_counts.to_dict('records'),
                              page_size=len(df_format_counts),
                              style_cell={'whiteSpace': 'pre-line',
                                          'textAlign': 'left'}),
-    ], align="center"),
+    ], align="center", className="table"),
     dcc.Markdown("Distribution of geometric errors. For the meaning of error codes see the [val3dity errors](https://val3dity.readthedocs.io/en/latest/errors/)."),
-    dash_table.DataTable(data=df_val3dity_params.to_dict('records'),
+    dbc.Row([dash_table.DataTable(data=df_val3dity_params.to_dict('records'),
                          style_cell={'whiteSpace': 'pre-line', 'textAlign': 'left'},
                          columns=[
                              {"name": "parameter", "id": "parameter",
                               "presentation": "markdown"},
                              {"name": "description", "id": "description"},
                              {"name": "value", "id": "value"}
-                         ]),
+                         ])
+     ], align="center", className="table"),
     dbc.Row([
-        dbc.Col(
-            dbc.Row([dcc.Graph(figure=plot_validity_cityjson(validated_compressed))])),
-        dbc.Col(dbc.Row([dcc.Graph(figure=plot_validity_obj(validated_compressed))])),
+        dbc.Col(card_validity_cityjson),
+        dbc.Col(card_validity_obj),
     ]),
-], fluid=True)
+], fluid=True, className="section content")
 
 log.info("Running the dashboard")

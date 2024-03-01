@@ -8,7 +8,7 @@ Group=www-data
 WorkingDirectory=/var/www/3dbag-dashboard/app
 Environment="PATH=/var/www/3dbag-dashboard/venv/bin"
 Environment="BAG3D_DATA_DIR=/data/3DBAGv3/export/"
-ExecStart=/var/www/3dbag-dashboard/venv/bin/gunicorn --workers 2 --timeout 0 --bind unix:3dbag_dashboard.sock -m 007 wsgi:server
+ExecStart=/var/www/3dbag-dashboard/venv/bin/gunicorn --workers 6 --timeout 0 --bind unix:3dbag_dashboard.sock -m 007 wsgi:server
 
 [Install]
 WantedBy=multi-user.target
