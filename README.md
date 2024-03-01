@@ -1,4 +1,12 @@
-# How to deploy on Godzilla
+# 3DBAG dashboard
+
+## Required inputs
+
+- reconstructed_features.csv
+- metadata.json
+- validate_compressed_files.csv
+
+## How to deploy on Godzilla
 
 1. Upload the code to `/var/www/3dbag-dashboard` and change to the directory 
 2. Make a venv with python3.11 in ´./venv´
