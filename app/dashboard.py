@@ -23,7 +23,7 @@ server = flask.Flask(__name__)  # define flask app.server
 app = Dash(__name__,
            external_stylesheets=[dbc.themes.BOOTSTRAP],
            server=server,
-           # url_base_pathname='/dashboard/'
+           url_base_pathname='/dashboard/'
            )  # call flask server
 
 # --- Prep input
@@ -172,15 +172,22 @@ def plot_validity_obj(validated_compressed):
     )
     return fig
 
+log.info("Plotting figures")
+fig_pc_version = plot_pc_version(reconstructed_features)
+fig_pc_selection_reason = plot_pc_selection_reason(reconstructed_features)
+fig_pc_nodata_fraction = plot_pc_nodata_fraction(reconstructed_features)
+fig_pc_nodata_radius = plot_pc_nodata_radius(reconstructed_features)
+fig_pc_density = plot_pc_density(reconstructed_features)
 
 # --- Layout
+log.info("Building layout")
 
 card_pc_version = dbc.Card(
     dbc.CardBody([
         html.H4("Point cloud source"),
         html.P(["Attribute: ", html.A("b3_pw_bron",
                href="https://docs.3dbag.nl/en/schema/attributes/#b3_pw_bron")]),
-        dcc.Graph(figure=plot_pc_version(reconstructed_features))
+        dcc.Graph(figure=fig_pc_version)
     ])
 )
 
@@ -189,7 +196,7 @@ card_pc_selection = dbc.Card(
         html.H4("Point cloud selection"),
         html.P(["Reason for the selected point cloud source. Attribute: ", html.A("b3_pw_selectie_reden",
                href="https://docs.3dbag.nl/en/schema/attributes/#b3_pw_selectie_reden")]),
-        dcc.Graph(figure=plot_pc_selection_reason(reconstructed_features))
+        dcc.Graph(figure=fig_pc_selection_reason)
     ])
 )
 
@@ -200,7 +207,7 @@ card_pc_nodata_fraction = dbc.Card(
             "Fraction of the footprint area that has no point data in the AHN point cloud. Only points classified as building or ground are considered. Attribute: ",
             html.A("b3_nodata_fractie_*", href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_fractie_ahn3")
         ]),
-        dcc.Graph(figure=plot_pc_nodata_fraction(reconstructed_features))
+        dcc.Graph(figure=fig_pc_nodata_fraction)
     ])
 )
 
@@ -211,7 +218,7 @@ card_pc_nodata_radius = dbc.Card(
             "Radius of the largest circle inside the BAG polygon without any AHN points. Only points classified as building or ground are considered. Attribute: ",
             html.A("b3_nodata_radius_*", href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_radius_ahn3")
         ]),
-        dcc.Graph(figure=plot_pc_nodata_radius(reconstructed_features))
+        dcc.Graph(figure=fig_pc_nodata_radius)
     ])
 )
 
@@ -222,7 +229,7 @@ card_pc_density = dbc.Card(
             "Density of the AHN point cloud on BAG polygon. Only points classified as building or ground are considered. Attribute: ",
             html.A("b3_puntdichtheid_*", href="https://docs.3dbag.nl/en/schema/attributes/#b3_puntdichtheid_ahn3")
         ]),
-        dcc.Graph(figure=plot_pc_density(reconstructed_features))
+        dcc.Graph(figure=fig_pc_density)
     ])
 )
 
