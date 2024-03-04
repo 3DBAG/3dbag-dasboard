@@ -74,6 +74,7 @@ count_not_reconstructed = reconstructed_features.loc[(
         reconstructed_features.lod_13 == 0) & (
                 reconstructed_features.lod_13 == 0) & (
                 reconstructed_features.lod_0 == 0)), "identificatie"].nunique()
+count_reconstructed = count_reconstruction_input - count_not_reconstructed
 log.info(f"Loaded {reconstructed_features_parquet}")
 
 ## Output formats
@@ -108,6 +109,22 @@ df_format_counts = pd.DataFrame.from_records([
      "object count": total_gpkg,
      "invalid geometry": "-"},
 ])
+
+cj_reconstructed_missing = count_reconstructed - validated_compressed.cj_nr_features.sum()
+cj_invalid_zip_list = validated_compressed.loc[validated_compressed["cj_zip_ok"] == False, "tile_id"].sort_values(ascending=True)
+cj_invalid_zip = "-" if len(cj_invalid_zip_list) == 0 else ", ".join(cj_invalid_zip_list)
+cj_invalid_schema_list = validated_compressed.loc[validated_compressed["cj_schema_valid"] == False, "tile_id"].sort_values(ascending=True)
+cj_invalid_schema = "-" if len(cj_invalid_schema_list) == 0 else ", ".join(cj_invalid_schema_list)
+cj_incomplete_lod_list = validated_compressed.loc[validated_compressed["cj_lod"] != "['0', '1.2', '1.3', '2.2']", "tile_id"].sort_values(ascending=True)
+cj_incomplete_lod = "-" if len(cj_incomplete_lod_list) == 0 else ", ".join(cj_incomplete_lod_list)
+obj_reconstructed_missing = count_reconstructed - validated_compressed.obj_nr_features.sum()
+obj_invalid_zip_list = validated_compressed.loc[validated_compressed["obj_zip_ok"] == False, "tile_id"].sort_values(ascending=True)
+obj_invalid_zip = "-" if len(obj_invalid_zip_list) == 0 else ", ".join(obj_invalid_zip_list)
+gpkg_reconstructed_missing = count_reconstructed - validated_compressed.gpkg_nr_features.sum()
+gpkg_invalid_zip_list = validated_compressed.loc[validated_compressed["gpkg_zip_ok"] == False, "tile_id"].sort_values(ascending=True)
+gpkg_invalid_zip = "-" if len(gpkg_invalid_zip_list) == 0 else ", ".join(gpkg_invalid_zip_list)
+gpkg_invalid_file_list = validated_compressed.loc[validated_compressed["gpkg_ok"] == False, "tile_id"].sort_values(ascending=True)
+gpkg_invalid_file = "-" if len(gpkg_invalid_file_list) == 0 else ", ".join(gpkg_invalid_file_list)
 
 # --- Plots
 
@@ -338,20 +355,23 @@ app.layout = dbc.Container([
     dbc.Row([
         html.H4("CityJSON", className="title is-4"),
         dcc.Markdown(f"""
-        - Tile IDs with an invalid ZIP file: {', '.join(validated_compressed.loc[validated_compressed["cj_zip_ok"] == False, "tile_id"].sort_values(ascending=True))}
-        - Tile IDs with an invalid CityJSON schema: {', '.join(validated_compressed.loc[validated_compressed["cj_schema_valid"] == False, "tile_id"].sort_values(ascending=True))}
-        - Tile IDs that do not contain all LoDs (0, 1.2, 1.3, 2.2): {', '.join(validated_compressed.loc[validated_compressed["cj_lod"] != "['0', '1.2', '1.3', '2.2']", "tile_id"].sort_values(ascending=True))}
+        - Number of reconstructed features that are missing from the files: {cj_reconstructed_missing} ({round(cj_reconstructed_missing / count_reconstructed * 100.0)}% of the reconstructed features, {round(cj_reconstructed_missing / count_reconstruction_input * 100.0)}% of the reconstruction input)
+        - Tile IDs with an invalid ZIP file: {cj_invalid_zip}
+        - Tile IDs with an invalid CityJSON schema: {cj_invalid_schema}
+        - Tile IDs that do not contain all LoDs (0, 1.2, 1.3, 2.2): {cj_incomplete_lod}
         """, className="content"),
 
         html.H4("OBJ", className="title is-4"),
         dcc.Markdown(f"""
-        - Tile IDs with an invalid ZIP file: {', '.join(validated_compressed.loc[validated_compressed["obj_zip_ok"] == False, "tile_id"].sort_values(ascending=True))}
+        - Number of reconstructed features that are missing from the files: {obj_reconstructed_missing} ({round(obj_reconstructed_missing / count_reconstructed * 100.0)}% of the reconstructed features, {round(obj_reconstructed_missing / count_reconstruction_input * 100.0)}% of the reconstruction input)
+        - Tile IDs with an invalid ZIP file: {obj_invalid_zip}
         """, className="content"),
 
         html.H4("GeoPackage", className="title is-4"),
         dcc.Markdown(f"""
-        - Tile IDs with an invalid ZIP file: {', '.join(validated_compressed.loc[validated_compressed["gpkg_zip_ok"] == False, "tile_id"].sort_values(ascending=True))}
-        - Tile IDs with invalid GeoPackage: {', '.join(validated_compressed.loc[validated_compressed["gpkg_ok"] == False, "tile_id"].sort_values(ascending=True))}
+        - Number of reconstructed features that are missing from the files: {gpkg_reconstructed_missing} ({round(gpkg_reconstructed_missing / count_reconstructed * 100.0)}% of the reconstructed features, {round(gpkg_reconstructed_missing / count_reconstruction_input * 100.0)}% of the reconstruction input) 
+        - Tile IDs with an invalid ZIP file: {gpkg_invalid_zip}
+        - Tile IDs with invalid GeoPackage: {gpkg_invalid_file}
         """, className="content"),
     ]),
     html.P("", className="content"),

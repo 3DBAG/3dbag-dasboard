@@ -6,6 +6,9 @@
 - metadata.json
 - validate_compressed_files.csv
 
+Use the `convert_to_parquet.py` script to convert the CSV files to parquet, which is the 
+required input format for the dashboard.
+
 ## How to deploy on Godzilla
 
 1. Upload the code to `/var/www/3dbag-dashboard` and change to the directory 
