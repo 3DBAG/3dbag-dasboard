@@ -21,6 +21,8 @@ pio.templates.default = "seaborn"
 logging.basicConfig(encoding='utf-8', level=logging.INFO)
 log = logging.getLogger(__name__)
 
+ROUNDING = 2
+
 # --- Server and App
 
 server = flask.Flask(__name__)  # define flask app.server
@@ -55,9 +57,11 @@ df_steps = pd.DataFrame.from_records(
     metadata["dataQualityInfo"]["lineage"]["processStep"]).rename(
     columns={"name": "step"})
 df_steps = df_steps[["step", "featureCount", "dataVersion", "dateTime", "runId"]]
-count_reconstruction_input = int(df_steps.loc[df_steps[
-                                                  "step"] == "input.reconstruction_input", "featureCount"].values[
-                                     0])
+count_reconstruction_input_building = int(
+    df_steps.loc[
+        df_steps["step"] == "input.reconstruction_input", "featureCount"
+    ].values[0]
+)
 
 ## Compressed files
 validate_compressed_files_parquet = data_dir / "validate_compressed_files.parquet"
@@ -69,12 +73,22 @@ log.info(f"Loaded {validate_compressed_files_parquet}")
 reconstructed_features_parquet = data_dir / "reconstructed_features.parquet"
 reconstructed_features = pd.read_parquet(reconstructed_features_parquet,
                                          engine="pyarrow")
-count_not_reconstructed = reconstructed_features.loc[(
-        (reconstructed_features.lod_12 == 0) & (
-        reconstructed_features.lod_13 == 0) & (
-                reconstructed_features.lod_13 == 0) & (
-                reconstructed_features.lod_0 == 0)), "identificatie"].nunique()
-count_reconstructed = count_reconstruction_input - count_not_reconstructed
+no_lod0 = (reconstructed_features.lod_0 == 0)
+no_lod12 = (reconstructed_features.lod_12 == 0)
+no_lod13 = (reconstructed_features.lod_13 == 0)
+no_lod22 = (reconstructed_features.lod_22 == 0)
+yes_lod0 = (reconstructed_features.lod_0 == 1)
+yes_lod12 = (reconstructed_features.lod_12 == 1)
+yes_lod13 = (reconstructed_features.lod_13 == 1)
+yes_lod22 = (reconstructed_features.lod_22 == 1)
+count_not_reconstructed_building = reconstructed_features.loc[
+    (no_lod12 & no_lod13 & no_lod22), "identificatie"
+].nunique()
+count_reconstructed_building = count_reconstruction_input_building - count_not_reconstructed_building
+count_reconstructed_buildingpart = reconstructed_features.loc[
+    (yes_lod12 & yes_lod13 & yes_lod22 & (reconstructed_features.id.str.len() == 32)), "id"
+].count()
+
 log.info(f"Loaded {reconstructed_features_parquet}")
 
 ## Output formats
@@ -91,39 +105,82 @@ df_val3dity_params = pd.DataFrame.from_records([
 ])
 df_val3dity_params["parameter"] = df_val3dity_params.parameter.astype(str)
 
-invalid_cj = validated_compressed.cj_nr_invalid.sum()
-total_cj = validated_compressed.cj_nr_features.sum()
-total_obj = validated_compressed.obj_nr_features.sum()
-invalid_obj = sum(itertools.chain.from_iterable(
-    eval(e) for e in validated_compressed.obj_nr_invalid if
-    isinstance(e, str) and e != "[]"))
-total_gpkg = validated_compressed.gpkg_nr_features.sum()
-df_format_counts = pd.DataFrame.from_records([
+total_cj_building = validated_compressed.cj_nr_building.sum().astype(int)
+total_cj_buildingpart = validated_compressed.cj_nr_buildingpart.sum().astype(int)
+invalid_cj_building = validated_compressed.cj_nr_invalid_building.sum().astype(int)
+invalid_cj_buildingpart_lod12 = validated_compressed.cj_nr_invalid_buildingpart_lod12.sum().astype(int)
+invalid_cj_buildingpart_lod13 = validated_compressed.cj_nr_invalid_buildingpart_lod13.sum().astype(int)
+invalid_cj_buildingpart_lod22 = validated_compressed.cj_nr_invalid_buildingpart_lod22.sum().astype(int)
+invalid_cj_buildingpart_lod12_pct = round(invalid_cj_buildingpart_lod12 / total_cj_buildingpart * 100, ROUNDING)
+invalid_cj_buildingpart_lod13_pct = round(invalid_cj_buildingpart_lod13 / total_cj_buildingpart * 100, ROUNDING)
+invalid_cj_buildingpart_lod22_pct = round(invalid_cj_buildingpart_lod22 / total_cj_buildingpart * 100, ROUNDING)
+mismatch_error_cj_lod12 = validated_compressed.cj_nr_mismatch_errors_lod12.sum().astype(int)
+mismatch_error_cj_lod13 = validated_compressed.cj_nr_mismatch_errors_lod13.sum().astype(int)
+mismatch_error_cj_lod22 = validated_compressed.cj_nr_mismatch_errors_lod22.sum().astype(int)
+
+total_obj_building = validated_compressed.obj_nr_building.sum().astype(int)
+total_obj_buildingpart = validated_compressed.obj_nr_buildingpart.sum().astype(int)
+invalid_obj_building = validated_compressed.obj_nr_invalid_building.sum().astype(int)
+invalid_obj_buildingpart_lod12 = validated_compressed.obj_nr_invalid_buildingpart_lod12.sum().astype(int)
+invalid_obj_buildingpart_lod13 = validated_compressed.obj_nr_invalid_buildingpart_lod13.sum().astype(int)
+invalid_obj_buildingpart_lod22 = validated_compressed.obj_nr_invalid_buildingpart_lod22.sum().astype(int)
+invalid_obj_buildingpart_lod12_pct = round(invalid_obj_buildingpart_lod12 / total_obj_buildingpart * 100, ROUNDING)
+invalid_obj_buildingpart_lod13_pct = round(invalid_obj_buildingpart_lod13 / total_obj_buildingpart * 100, ROUNDING)
+invalid_obj_buildingpart_lod22_pct = round(invalid_obj_buildingpart_lod22 / total_obj_buildingpart * 100, ROUNDING)
+
+total_gpkg_building = validated_compressed.gpkg_nr_building.sum().astype(int)
+total_gpkg_buildingpart = validated_compressed.gpkg_nr_buildingpart.sum().astype(int)
+
+df_format_counts_cj = pd.DataFrame.from_records([
     {"format": "CityJSON",
-     "object count": total_cj,
-     "invalid geometry": f"{invalid_cj} ({round(invalid_cj / total_cj * 100, 2)}%)"},
+     "building count": total_cj_building,
+     "building part count": total_cj_buildingpart,
+     "invalid geometry building": f"{invalid_cj_building} ({round(invalid_cj_building / total_cj_building * 100, ROUNDING)}%)",
+     "invalid geometry LoD1.2": f"{invalid_cj_buildingpart_lod12} ({invalid_cj_buildingpart_lod12_pct}%)",
+     "invalid geometry LoD1.3": f"{invalid_cj_buildingpart_lod13} ({invalid_cj_buildingpart_lod13_pct}%)",
+     "invalid geometry LoD2.2": f"{invalid_cj_buildingpart_lod22} ({invalid_cj_buildingpart_lod22_pct}%)",
+     "mismatch val3dity errors LoD1.2": f"{mismatch_error_cj_lod12} ({round(mismatch_error_cj_lod12 / invalid_cj_buildingpart_lod12 * 100, ROUNDING)}%)",
+     "mismatch val3dity errors LoD1.3": f"{mismatch_error_cj_lod13} ({round(mismatch_error_cj_lod13 / invalid_cj_buildingpart_lod13 * 100, ROUNDING)}%)",
+     "mismatch val3dity errors LoD2.2": f"{mismatch_error_cj_lod22} ({round(mismatch_error_cj_lod22 / invalid_cj_buildingpart_lod22 * 100, ROUNDING)}%)",
+     },
     {"format": "OBJ",
-     "object count": total_obj,
-     "invalid geometry": f"{invalid_obj} ({round(invalid_obj / total_obj * 100, 2)}%)"},
-    {"format": "GPKG",
-     "object count": total_gpkg,
-     "invalid geometry": "-"},
+     "building count": total_obj_building,
+     "building part count": total_obj_buildingpart,
+     "invalid geometry building": f"{invalid_obj_building} ({round(invalid_obj_building / total_obj_building * 100, ROUNDING)}%)",
+     "invalid geometry LoD1.2": f"{invalid_obj_buildingpart_lod12} ({invalid_obj_buildingpart_lod12_pct}%)",
+     "invalid geometry LoD1.3": f"{invalid_obj_buildingpart_lod13} ({invalid_obj_buildingpart_lod13_pct}%)",
+     "invalid geometry LoD2.2": f"{invalid_obj_buildingpart_lod22} ({invalid_obj_buildingpart_lod22_pct}%)",
+     "mismatch val3dity errors LoD1.2": "-",
+     "mismatch val3dity errors LoD1.3": "-",
+     "mismatch val3dity errors LoD2.2": "-",
+     },
+    {"format": "GeoPackage",
+     "building count": total_gpkg_building,
+     "building part count": total_gpkg_buildingpart,
+     "invalid geometry building": "-",
+     "invalid geometry LoD1.2": "-",
+     "invalid geometry LoD1.3": "-",
+     "invalid geometry LoD2.2": "-",
+     "mismatch val3dity errors LoD1.2": "-",
+     "mismatch val3dity errors LoD1.3": "-",
+     "mismatch val3dity errors LoD2.2": "-",
+     }
 ])
 
-cj_reconstructed_missing = count_reconstructed - validated_compressed.cj_nr_features.sum()
+cj_reconstructed_missing = count_reconstructed_building - total_cj_building
 cj_invalid_zip_list = validated_compressed.loc[validated_compressed["cj_zip_ok"] == False, "tile_id"].sort_values(ascending=True)
 cj_invalid_zip = "-" if len(cj_invalid_zip_list) == 0 else ", ".join(cj_invalid_zip_list)
 cj_invalid_schema_list = validated_compressed.loc[validated_compressed["cj_schema_valid"] == False, "tile_id"].sort_values(ascending=True)
 cj_invalid_schema = "-" if len(cj_invalid_schema_list) == 0 else ", ".join(cj_invalid_schema_list)
 cj_incomplete_lod_list = validated_compressed.loc[validated_compressed["cj_lod"] != "['0', '1.2', '1.3', '2.2']", "tile_id"].sort_values(ascending=True)
 cj_incomplete_lod = "-" if len(cj_incomplete_lod_list) == 0 else ", ".join(cj_incomplete_lod_list)
-obj_reconstructed_missing = count_reconstructed - validated_compressed.obj_nr_features.sum()
+obj_reconstructed_missing = count_reconstructed_building - total_obj_building
 obj_invalid_zip_list = validated_compressed.loc[validated_compressed["obj_zip_ok"] == False, "tile_id"].sort_values(ascending=True)
 obj_invalid_zip = "-" if len(obj_invalid_zip_list) == 0 else ", ".join(obj_invalid_zip_list)
-gpkg_reconstructed_missing = count_reconstructed - validated_compressed.gpkg_nr_features.sum()
+gpkg_reconstructed_missing = count_reconstructed_building - total_gpkg_building
 gpkg_invalid_zip_list = validated_compressed.loc[validated_compressed["gpkg_zip_ok"] == False, "tile_id"].sort_values(ascending=True)
 gpkg_invalid_zip = "-" if len(gpkg_invalid_zip_list) == 0 else ", ".join(gpkg_invalid_zip_list)
-gpkg_invalid_file_list = validated_compressed.loc[validated_compressed["gpkg_ok"] == False, "tile_id"].sort_values(ascending=True)
+gpkg_invalid_file_list = validated_compressed.loc[validated_compressed["gpkg_file_ok"] == False, "tile_id"].sort_values(ascending=True)
 gpkg_invalid_file = "-" if len(gpkg_invalid_file_list) == 0 else ", ".join(gpkg_invalid_file_list)
 
 # --- Plots
@@ -167,9 +224,10 @@ def plot_pc_selection_reason(rf_pw_selectie_counts):
 
 def plot_pc_nodata_fraction(rf_pw_fraction):
     buf = io.BytesIO()
-    p = sns.displot(rf_pw_fraction, x="fraction", hue="pc_source", binwidth=0.05,
+    binwidth = 0.05
+    p = sns.displot(rf_pw_fraction, x="fraction", hue="pc_source", binwidth=binwidth,
                     stat="probability", common_norm=False)
-    p.set_axis_labels("Fraction of the footprint")
+    p.set_axis_labels(f"Fraction of the footprint. Binwidth={binwidth}")
     p.legend.set_title("Point cloud")
     plt.savefig(buf, format="svg")
     plt.close()
@@ -181,9 +239,10 @@ def plot_pc_nodata_fraction(rf_pw_fraction):
 def plot_pc_nodata_radius(rf_pw_radius):
     buf = io.BytesIO()
     x_range = (0, 5)
-    p = sns.displot(rf_pw_radius, x="fraction", hue="pc_source", binwidth=0.1,
+    binwidth = 0.1
+    p = sns.displot(rf_pw_radius, x="fraction", hue="pc_source", binwidth=binwidth,
                     stat="probability", common_norm=False)
-    p.set_axis_labels(f"Radius [m]. Range limited to {x_range}")
+    p.set_axis_labels(f"Radius [m]. Range limited to {x_range}. Binwidth={binwidth}")
     p.legend.set_title("Point cloud")
     plt.xlim(*x_range)
     plt.savefig(buf, format="svg")
@@ -196,9 +255,10 @@ def plot_pc_nodata_radius(rf_pw_radius):
 def plot_pc_density(rf_pw_density):
     buf = io.BytesIO()
     x_range = (0, 100)
-    p = sns.displot(rf_pw_density, x="fraction", hue="pc_source", binwidth=5,
+    binwidth = 5
+    p = sns.displot(rf_pw_density, x="fraction", hue="pc_source", binwidth=binwidth,
                     stat="probability", common_norm=False)
-    p.set_axis_labels(f"Point density [pt/m2]. Range limited to {x_range}")
+    p.set_axis_labels(f"Point density [pt/m2]. Range limited to {x_range}. Binwidth={binwidth}")
     p.legend.set_title("Point cloud")
     plt.xlim(*x_range)
     plt.savefig(buf, format="svg")
@@ -208,25 +268,98 @@ def plot_pc_density(rf_pw_density):
     return "data:image/svg+xml;base64,{}".format(data)
 
 
-def plot_validity_cityjson(validated_compressed):
+def plot_validity_cityjson_lod12(validated_compressed):
     _ae = itertools.chain.from_iterable(
-        eval(e) for e in validated_compressed.cj_all_errors if e != "[]")
+        eval(e) for e in validated_compressed.cj_errors_lod12
+        if isinstance(e, str) and e != "[]")
     all_errors = list(_ae)
     fig = go.Figure(data=[go.Pie(labels=all_errors, hole=PIE_HOLE)])
     fig.update_layout(
-        annotations=[dict(text='CityJSON', x=0.5, y=0.5, font_size=20, showarrow=False)]
+        title=go.layout.Title(
+            text=f"{invalid_cj_buildingpart_lod12_pct}% of the LoD1.2 building parts are invalid",
+            xref="paper",
+            x=0
+        )
     )
     return fig
 
 
-def plot_validity_obj(validated_compressed):
+def plot_validity_cityjson_lod13(validated_compressed):
     _ae = itertools.chain.from_iterable(
-        eval(e) for e in validated_compressed.obj_all_errors if
+        eval(e) for e in validated_compressed.cj_errors_lod13
+        if isinstance(e, str) and e != "[]")
+    all_errors = list(_ae)
+    fig = go.Figure(data=[go.Pie(labels=all_errors, hole=PIE_HOLE)])
+    fig.update_layout(
+        title=go.layout.Title(
+            text=f"{invalid_cj_buildingpart_lod13_pct}% of the LoD1.3 building parts are invalid",
+            xref="paper",
+            x=0
+        )
+    )
+    return fig
+
+
+def plot_validity_cityjson_lod22(validated_compressed):
+    _ae = itertools.chain.from_iterable(
+        eval(e) for e in validated_compressed.cj_errors_lod22
+        if isinstance(e, str) and e != "[]")
+    all_errors = list(_ae)
+    fig = go.Figure(data=[go.Pie(labels=all_errors, hole=PIE_HOLE)])
+    fig.update_layout(
+        title=go.layout.Title(
+            text=f"{invalid_cj_buildingpart_lod22_pct}% of the LoD2.2 building parts are invalid",
+            xref="paper",
+            x=0
+        )
+    )
+    return fig
+
+
+def plot_validity_obj_lod12(validated_compressed):
+    _ae = itertools.chain.from_iterable(
+        eval(e) for e in validated_compressed.obj_errors_lod12
+        if isinstance(e, str) and e != "[]")
+    all_errors = list(_ae)
+    fig = go.Figure(data=[go.Pie(labels=all_errors, values=all_errors, hole=PIE_HOLE)])
+    fig.update_layout(
+        title=go.layout.Title(
+            text=f"{invalid_obj_buildingpart_lod12_pct}% of the LoD1.2 building parts are invalid",
+            xref="paper",
+            x=0
+        )
+    )
+    return fig
+
+
+def plot_validity_obj_lod13(validated_compressed):
+    _ae = itertools.chain.from_iterable(
+        eval(e) for e in validated_compressed.obj_errors_lod13 if
         isinstance(e, str) and e != "[]")
     all_errors = list(_ae)
     fig = go.Figure(data=[go.Pie(labels=all_errors, values=all_errors, hole=PIE_HOLE)])
     fig.update_layout(
-        annotations=[dict(text='OBJ', x=0.5, y=0.5, font_size=20, showarrow=False)]
+        title=go.layout.Title(
+            text=f"{invalid_obj_buildingpart_lod13_pct}% of the LoD1.3 building parts are invalid",
+            xref="paper",
+            x=0
+        )
+    )
+    return fig
+
+
+def plot_validity_obj_lod22(validated_compressed):
+    _ae = itertools.chain.from_iterable(
+        eval(e) for e in validated_compressed.obj_errors_lod22 if
+        isinstance(e, str) and e != "[]")
+    all_errors = list(_ae)
+    fig = go.Figure(data=[go.Pie(labels=all_errors, values=all_errors, hole=PIE_HOLE)])
+    fig.update_layout(
+        title=go.layout.Title(
+            text=f"{invalid_obj_buildingpart_lod22_pct}% of the LoD2.2 building parts are invalid",
+            xref="paper",
+            x=0
+        )
     )
     return fig
 
@@ -296,17 +429,45 @@ card_pc_density = dbc.Card(
     ])
 )
 
-card_validity_cityjson = dbc.Card(
+card_validity_cityjson_lod12 = dbc.Card(
     dbc.CardBody([
-        html.H4("CityJSON geometric errors"),
-        dcc.Graph(figure=plot_validity_cityjson(validated_compressed))
+        html.H4("CityJSON geometric errors (LoD1.2 building part)"),
+        dcc.Graph(figure=plot_validity_cityjson_lod12(validated_compressed))
     ])
 )
 
-card_validity_obj = dbc.Card(
+card_validity_cityjson_lod13 = dbc.Card(
     dbc.CardBody([
-        html.H4("OBJ geometric errors"),
-        dcc.Graph(figure=plot_validity_obj(validated_compressed))
+        html.H4("CityJSON geometric errors (LoD1.3 building part)"),
+        dcc.Graph(figure=plot_validity_cityjson_lod13(validated_compressed))
+    ])
+)
+
+card_validity_cityjson_lod22 = dbc.Card(
+    dbc.CardBody([
+        html.H4("CityJSON geometric errors (LoD2.2 building part)"),
+        dcc.Graph(figure=plot_validity_cityjson_lod22(validated_compressed))
+    ])
+)
+
+card_validity_obj_lod12 = dbc.Card(
+    dbc.CardBody([
+        html.H4("OBJ geometric errors (LoD1.2 building part)"),
+        dcc.Graph(figure=plot_validity_obj_lod12(validated_compressed))
+    ])
+)
+
+card_validity_obj_lod13 = dbc.Card(
+    dbc.CardBody([
+        html.H4("OBJ geometric errors (LoD1.3 building part)"),
+        dcc.Graph(figure=plot_validity_obj_lod13(validated_compressed))
+    ])
+)
+
+card_validity_obj_lod22 = dbc.Card(
+    dbc.CardBody([
+        html.H4("OBJ geometric errors (LoD2.2 building part)"),
+        dcc.Graph(figure=plot_validity_obj_lod22(validated_compressed))
     ])
 )
 
@@ -348,14 +509,14 @@ app.layout = dbc.Container([
     ]),
     html.H3("Reconstruction", className="title is-3"),
     html.P(
-        f"Reconstruction rate: {100.0 - round(count_not_reconstructed / count_reconstruction_input * 100, 1)}%"),
+        f"Reconstruction rate of buildings (BAG objects): {100.0 - round(count_not_reconstructed_building / count_reconstruction_input_building * 100, ROUNDING)}%"),
     html.P(
-        f"Number failed: {count_not_reconstructed} (out of {count_reconstruction_input})"),
+        f"Number failed: {count_not_reconstructed_building} (out of {count_reconstruction_input_building})"),
     html.H3("Output formats", className="title is-3"),
     dbc.Row([
         html.H4("CityJSON", className="title is-4"),
         dcc.Markdown(f"""
-        - Number of reconstructed features that are missing from the files: {cj_reconstructed_missing} ({round(cj_reconstructed_missing / count_reconstructed * 100.0)}% of the reconstructed features, {round(cj_reconstructed_missing / count_reconstruction_input * 100.0)}% of the reconstruction input)
+        - Number of reconstructed features that are missing from the files: {cj_reconstructed_missing} ({round(cj_reconstructed_missing / count_reconstructed_building * 100.0, ROUNDING)}% of the reconstructed features, {round(cj_reconstructed_missing / count_reconstruction_input_building * 100.0, ROUNDING)}% of the reconstruction input)
         - Tile IDs with an invalid ZIP file: {cj_invalid_zip}
         - Tile IDs with an invalid CityJSON schema: {cj_invalid_schema}
         - Tile IDs that do not contain all LoDs (0, 1.2, 1.3, 2.2): {cj_incomplete_lod}
@@ -363,13 +524,13 @@ app.layout = dbc.Container([
 
         html.H4("OBJ", className="title is-4"),
         dcc.Markdown(f"""
-        - Number of reconstructed features that are missing from the files: {obj_reconstructed_missing} ({round(obj_reconstructed_missing / count_reconstructed * 100.0)}% of the reconstructed features, {round(obj_reconstructed_missing / count_reconstruction_input * 100.0)}% of the reconstruction input)
+        - Number of reconstructed features that are missing from the files: {obj_reconstructed_missing} ({round(obj_reconstructed_missing / count_reconstructed_building * 100.0, ROUNDING)}% of the reconstructed features, {round(obj_reconstructed_missing / count_reconstruction_input_building * 100.0, ROUNDING)}% of the reconstruction input)
         - Tile IDs with an invalid ZIP file: {obj_invalid_zip}
         """, className="content"),
 
         html.H4("GeoPackage", className="title is-4"),
         dcc.Markdown(f"""
-        - Number of reconstructed features that are missing from the files: {gpkg_reconstructed_missing} ({round(gpkg_reconstructed_missing / count_reconstructed * 100.0)}% of the reconstructed features, {round(gpkg_reconstructed_missing / count_reconstruction_input * 100.0)}% of the reconstruction input) 
+        - Number of reconstructed features that are missing from the files: {gpkg_reconstructed_missing} ({round(gpkg_reconstructed_missing / count_reconstructed_building * 100.0, ROUNDING)}% of the reconstructed features, {round(gpkg_reconstructed_missing / count_reconstruction_input_building * 100.0, ROUNDING)}% of the reconstruction input) 
         - Tile IDs with an invalid ZIP file: {gpkg_invalid_zip}
         - Tile IDs with invalid GeoPackage: {gpkg_invalid_file}
         """, className="content"),
@@ -377,8 +538,7 @@ app.layout = dbc.Container([
     html.P("", className="content"),
     html.H3("Geometric errors", className="title is-3"),
     dbc.Row([
-        dash_table.DataTable(data=df_format_counts.to_dict('records'),
-                             page_size=len(df_format_counts),
+        dash_table.DataTable(data=df_format_counts_cj.to_dict('records'),
                              style_cell={'whiteSpace': 'pre-line',
                                          'textAlign': 'left'}),
     ], align="center", className="table"),
@@ -395,8 +555,14 @@ app.layout = dbc.Container([
                                   ])
              ], align="center", className="table"),
     dbc.Row([
-        dbc.Col(card_validity_cityjson),
-        dbc.Col(card_validity_obj),
+        dbc.Col(card_validity_cityjson_lod12),
+        dbc.Col(card_validity_cityjson_lod13),
+        dbc.Col(card_validity_cityjson_lod22),
+    ]),
+    dbc.Row([
+        dbc.Col(card_validity_obj_lod12),
+        dbc.Col(card_validity_obj_lod13),
+        dbc.Col(card_validity_obj_lod22),
     ]),
 ], fluid=True, className="section content")
 
