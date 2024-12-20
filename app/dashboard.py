@@ -194,19 +194,27 @@ rf_pw_fraction = pd.DataFrame({
     'AHN3': reconstructed_features[reconstructed_features[
         "b3_nodata_fractie_AHN3"].notna()].b3_nodata_fractie_AHN3,
     'AHN4': reconstructed_features[
-        reconstructed_features["b3_nodata_fractie_AHN4"].notna()].b3_nodata_fractie_AHN4
+        reconstructed_features["b3_nodata_fractie_AHN4"].notna()].b3_nodata_fractie_AHN4,
+    'AHN5': reconstructed_features[
+        reconstructed_features["b3_nodata_fractie_AHN5"].notna()].b3_nodata_fractie_AHN5
 }).melt(var_name="pc_source", value_name="fraction")
 rf_pw_radius = pd.DataFrame({
     'AHN3': reconstructed_features[
         reconstructed_features["b3_nodata_radius_AHN3"].notna()].b3_nodata_radius_AHN3,
     'AHN4': reconstructed_features[
-        reconstructed_features["b3_nodata_radius_AHN4"].notna()].b3_nodata_radius_AHN4}
+        reconstructed_features["b3_nodata_radius_AHN4"].notna()].b3_nodata_radius_AHN4,
+    'AHN5': reconstructed_features[
+        reconstructed_features["b3_nodata_radius_AHN5"].notna()].b3_nodata_radius_AHN5
+        }
 ).melt(var_name="pc_source", value_name="fraction")
 rf_pw_density = pd.DataFrame({
     'AHN3': reconstructed_features[
         reconstructed_features["b3_puntdichtheid_AHN3"].notna()].b3_puntdichtheid_AHN3,
     'AHN4': reconstructed_features[
-        reconstructed_features["b3_puntdichtheid_AHN4"].notna()].b3_puntdichtheid_AHN4}
+        reconstructed_features["b3_puntdichtheid_AHN4"].notna()].b3_puntdichtheid_AHN4,
+    'AHN5': reconstructed_features[
+        reconstructed_features["b3_puntdichtheid_AHN5"].notna()].b3_puntdichtheid_AHN5
+    }
 ).melt(var_name="pc_source", value_name="fraction")
 del reconstructed_features
 log.info("End Preparing dataframes for the plots")
