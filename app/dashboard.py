@@ -97,7 +97,7 @@ df_val3dity_params = pd.DataFrame.from_records([
     {
         "parameter": "[planarity_d2p_tol](https://val3dity.readthedocs.io/en/latest/usage/#planarity-d2p-tol)",
         "description": "Tolerance for planarity based on a distance to a plane",
-        "value": 0.001},
+        "value": 0.0001},
     {
         "parameter": "[planarity_n_tol](https://val3dity.readthedocs.io/en/latest/usage/#planarity-n-tol)",
         "description": "Tolerance for planarity based on normals deviation",
@@ -538,7 +538,7 @@ app.layout = dbc.Container([
 
         html.H4("GeoPackage", className="title is-4"),
         dcc.Markdown(f"""
-        - Number of reconstructed features that are missing from the files: {gpkg_reconstructed_missing} ({round(gpkg_reconstructed_missing / count_reconstructed_building * 100.0, ROUNDING)}% of the reconstructed features, {round(gpkg_reconstructed_missing / count_reconstruction_input_building * 100.0, ROUNDING)}% of the reconstruction input) 
+        - Number of reconstructed features that are missing from the files: {gpkg_reconstructed_missing} ({round(gpkg_reconstructed_missing / count_reconstructed_building * 100.0, ROUNDING)}% of the reconstructed features, {round(gpkg_reconstructed_missing / count_reconstruction_input_building * 100.0, ROUNDING)}% of the reconstruction input)
         - Tile IDs with an invalid ZIP file: {gpkg_invalid_zip}
         - Tile IDs with invalid GeoPackage: {gpkg_invalid_file}
         """, className="content"),
