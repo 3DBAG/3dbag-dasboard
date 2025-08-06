@@ -95,13 +95,17 @@ log.info(f"Loaded {reconstructed_features_parquet}")
 
 df_val3dity_params = pd.DataFrame.from_records([
     {
-        "parameter": "[planarity_d2p_tol](https://val3dity.readthedocs.io/en/latest/usage/#planarity-d2p-tol)",
+        "parameter": "[planarity_d2p_tol](https://val3dity.readthedocs.io/main/usage.html#planarity-d2p-tol)",
         "description": "Tolerance for planarity based on a distance to a plane",
         "value": 0.0001},
     {
-        "parameter": "[planarity_n_tol](https://val3dity.readthedocs.io/en/latest/usage/#planarity-n-tol)",
+        "parameter": "[planarity_n_tol](https://val3dity.readthedocs.io/main/usage.html#planarity-n-tol)",
         "description": "Tolerance for planarity based on normals deviation",
         "value": 20.0},
+    {
+        "parameter": "[snap_tol](https://val3dity.readthedocs.io/main/usage.html#snap-tol)",
+        "description": "Tolerance for snapping vertices that are close to each others",
+        "value": 0.0001},
 ])
 df_val3dity_params["parameter"] = df_val3dity_params.parameter.astype(str)
 
@@ -551,7 +555,7 @@ app.layout = dbc.Container([
                                          'textAlign': 'left'}),
     ], align="center", className="table"),
     dcc.Markdown(
-        "Distribution of geometric errors. For the meaning of error codes see the [val3dity errors](https://val3dity.readthedocs.io/en/latest/errors/)."),
+        "Distribution of geometric errors. For the meaning of error codes see the [val3dity errors](https://val3dity.readthedocs.io/main/errors.html)."),
     dbc.Row([dash_table.DataTable(data=df_val3dity_params.to_dict('records'),
                                   style_cell={'whiteSpace': 'pre-line',
                                               'textAlign': 'left'},
