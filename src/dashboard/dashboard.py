@@ -191,29 +191,29 @@ rf_pw_bron_counts = reconstructed_features.b3_pw_bron.value_counts(dropna=False)
 rf_pw_selectie_counts = reconstructed_features.b3_pw_selectie_reden.value_counts(
     dropna=False)
 rf_pw_fraction = pd.DataFrame({
-    'AHN3': reconstructed_features[reconstructed_features[
-        "b3_nodata_fractie_AHN3"].notna()].b3_nodata_fractie_AHN3,
-    'AHN4': reconstructed_features[
-        reconstructed_features["b3_nodata_fractie_AHN4"].notna()].b3_nodata_fractie_AHN4,
-    'AHN5': reconstructed_features[
-        reconstructed_features["b3_nodata_fractie_AHN5"].notna()].b3_nodata_fractie_AHN5
+    'ahn3': reconstructed_features[reconstructed_features[
+        "b3_nodata_fractie_ahn3"].notna()].b3_nodata_fractie_ahn3,
+    'ahn4': reconstructed_features[
+        reconstructed_features["b3_nodata_fractie_ahn4"].notna()].b3_nodata_fractie_ahn4,
+    'ahn5': reconstructed_features[
+        reconstructed_features["b3_nodata_fractie_ahn5"].notna()].b3_nodata_fractie_ahn5
 }).melt(var_name="pc_source", value_name="fraction")
 rf_pw_radius = pd.DataFrame({
-    'AHN3': reconstructed_features[
-        reconstructed_features["b3_nodata_radius_AHN3"].notna()].b3_nodata_radius_AHN3,
-    'AHN4': reconstructed_features[
-        reconstructed_features["b3_nodata_radius_AHN4"].notna()].b3_nodata_radius_AHN4,
-    'AHN5': reconstructed_features[
-        reconstructed_features["b3_nodata_radius_AHN5"].notna()].b3_nodata_radius_AHN5
+    'ahn3': reconstructed_features[
+        reconstructed_features["b3_nodata_radius_ahn3"].notna()].b3_nodata_radius_ahn3,
+    'ahn4': reconstructed_features[
+        reconstructed_features["b3_nodata_radius_ahn4"].notna()].b3_nodata_radius_ahn4,
+    'ahn5': reconstructed_features[
+        reconstructed_features["b3_nodata_radius_ahn5"].notna()].b3_nodata_radius_ahn5
         }
 ).melt(var_name="pc_source", value_name="fraction")
 rf_pw_density = pd.DataFrame({
-    'AHN3': reconstructed_features[
-        reconstructed_features["b3_puntdichtheid_AHN3"].notna()].b3_puntdichtheid_AHN3,
-    'AHN4': reconstructed_features[
-        reconstructed_features["b3_puntdichtheid_AHN4"].notna()].b3_puntdichtheid_AHN4,
-    'AHN5': reconstructed_features[
-        reconstructed_features["b3_puntdichtheid_AHN5"].notna()].b3_puntdichtheid_AHN5
+    'ahn3': reconstructed_features[
+        reconstructed_features["b3_puntdichtheid_ahn3"].notna()].b3_puntdichtheid_ahn3,
+    'ahn4': reconstructed_features[
+        reconstructed_features["b3_puntdichtheid_ahn4"].notna()].b3_puntdichtheid_ahn4,
+    'ahn5': reconstructed_features[
+        reconstructed_features["b3_puntdichtheid_ahn5"].notna()].b3_puntdichtheid_ahn5
     }
 ).melt(var_name="pc_source", value_name="fraction")
 del reconstructed_features
@@ -407,7 +407,7 @@ card_pc_nodata_fraction = dbc.Card(
         html.P([
             "Fraction of the footprint area that has no point data in the AHN point cloud. Only points classified as building or ground are considered. Attribute: ",
             html.A("b3_nodata_fractie_*",
-                   href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_fractie_AHN3")
+                   href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_fractie_ahn3")
         ]),
         dbc.CardImg(src=fig_pc_nodata_fraction),
     ])
@@ -419,7 +419,7 @@ card_pc_nodata_radius = dbc.Card(
         html.P([
             "Radius of the largest circle inside the BAG polygon without any AHN points. Only points classified as building or ground are considered. Attribute: ",
             html.A("b3_nodata_radius_*",
-                   href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_radius_AHN3")
+                   href="https://docs.3dbag.nl/en/schema/attributes/#b3_nodata_radius_ahn3")
         ]),
         dbc.CardImg(src=fig_pc_nodata_radius)
     ])
@@ -431,7 +431,7 @@ card_pc_density = dbc.Card(
         html.P([
             "Density of the AHN point cloud on BAG polygon. Only points classified as building or ground are considered. Attribute: ",
             html.A("b3_puntdichtheid_*",
-                   href="https://docs.3dbag.nl/en/schema/attributes/#b3_puntdichtheid_AHN3")
+                   href="https://docs.3dbag.nl/en/schema/attributes/#b3_puntdichtheid_ahn3")
         ]),
         dbc.CardImg(src=fig_pc_density)
     ])
